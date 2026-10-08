@@ -134,8 +134,10 @@ export async function extractDoelstelling(orgName: string, pageText: string): Pr
       body: JSON.stringify({
         model: config.llmModel,
         stream: false,
+        // A thinking model (gemma4) otherwise spends the whole output budget reasoning and returns an empty answer.
+        think: false,
         messages: [{ role: 'user', content: prompt }],
-        options: { temperature: 0, num_predict: 200 },
+        options: { temperature: 0, num_predict: 300 },
       }),
       signal: AbortSignal.timeout(config.llmTimeoutMs),
     });
