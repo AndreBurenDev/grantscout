@@ -1,5 +1,8 @@
 # GrantScout Project Status
 
+> **Outdated: describes the retired Google Cloud deployment.** GrantScout now runs on the Mac Mini with SQLite and
+> Ollama. See [infra/mini/README.md](infra/mini/README.md); the old setup is archived in [infra/legacy-gcp](infra/legacy-gcp/README.md).
+
 **Status**: Phase 2 Complete, Ready for GCP Deployment  
 **Last Updated**: 2026-02-23  
 **Test Coverage**: 50 tests, 100% passing

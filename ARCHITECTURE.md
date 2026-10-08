@@ -1,5 +1,8 @@
 # GrantScout Architecture
 
+> **Outdated: describes the retired Google Cloud deployment.** GrantScout now runs on the Mac Mini with SQLite and
+> Ollama. See [infra/mini/README.md](infra/mini/README.md); the old setup is archived in [infra/legacy-gcp](infra/legacy-gcp/README.md).
+
 ## System Design
 
 GrantScout is a **demand-side intelligence system** for GrantMaster. It ingests organizations that seek grants, scores them on Fit × Intent × Timing × Reachability, and surfaces top prospects to the sales team.

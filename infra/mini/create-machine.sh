@@ -6,9 +6,6 @@ set -euo pipefail
 M=grantscout
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 orb create --isolated --isolate-network --cpus 2 --memory 4G ubuntu:noble "$M"
-orb -m "$M" -u root mkdir -p /opt/grantscout
-# Ship the repo in (no host mounts in an isolated machine). Committed HEAD only — commit first.
-# Untracked files (.env, grantscout-key.json) are deliberately NOT shipped: no cloud credential enters the machine.
-git -C "$REPO" archive --format=tar HEAD | orb -m "$M" -u root tar -x -C /opt/grantscout
-orb -m "$M" -u root bash /opt/grantscout/infra/mini/provision-machine.sh </dev/null
-echo "Machine ready. No service is installed: GrantScout has no local runtime yet (see infra/mini/README.md)."
+"$REPO/infra/mini/deploy.sh"
+echo "Machine ready. Do NOT start the service yet. Next (infra/mini/README.md): write /etc/grantscout/env with"
+echo "SCHEDULER_PAUSED=true (step 2), put the Console on the tailnet (step 3), then start it paused (step 4)."

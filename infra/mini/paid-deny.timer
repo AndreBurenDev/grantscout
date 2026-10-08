@@ -1,0 +1,12 @@
+# infra/mini/paid-deny.timer → /etc/systemd/system/grantscout-paid-deny.timer
+[Unit]
+Description=Refresh GrantScout paid-API egress block daily
+
+[Timer]
+OnBootSec=1min
+OnCalendar=daily
+Persistent=true
+Unit=grantscout-paid-deny.service
+
+[Install]
+WantedBy=timers.target

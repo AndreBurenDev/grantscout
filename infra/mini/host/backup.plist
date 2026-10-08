@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  infra/mini/host/backup.plist → ~/Library/LaunchAgents/com.grantscout.backup.plist (on the Mini HOST)
+  04:45 nightly (GrantAtlas runs at 04:30). The script path assumes the repo at /Users/andre/Development/grantscout.
+  launchd does not expand ~ or $HOME: the log paths are absolute. Create the log dir first: mkdir -p ~/Library/Logs/grantscout
+-->
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.grantscout.backup</string>
+  <key>ProgramArguments</key><array>
+    <string>/bin/bash</string>
+    <string>/Users/andre/Development/grantscout/infra/mini/host/backup.sh</string>
+  </array>
+  <key>StartCalendarInterval</key><dict>
+    <key>Hour</key><integer>4</integer>
+    <key>Minute</key><integer>45</integer>
+  </dict>
+  <key>StandardOutPath</key><string>/Users/andre/Library/Logs/grantscout/backup.log</string>
+  <key>StandardErrorPath</key><string>/Users/andre/Library/Logs/grantscout/backup.err</string>
+</dict></plist>

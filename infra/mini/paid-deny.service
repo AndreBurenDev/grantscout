@@ -1,0 +1,12 @@
+# infra/mini/paid-deny.service → /etc/systemd/system/grantscout-paid-deny.service
+[Unit]
+Description=GrantScout paid-API egress block
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/grantscout-paid-deny
+
+[Install]
+WantedBy=multi-user.target

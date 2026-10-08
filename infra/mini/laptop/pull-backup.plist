@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  infra/mini/laptop/pull-backup.plist → ~/Library/LaunchAgents/com.grantscout.pull-backup.plist (on the LAPTOP)
+  Hourly; the script exits quietly when the Mini is unreachable. As committed, the script path points into a repo clone. The laptop
+  keeps no clone, so the install (README, Backups step 6) rewrites it to the standalone copy in ~/.local/share/grantscout/.
+  Edit it (and the log paths) if your layout differs.
+  launchd does not expand ~ or $HOME: the log paths are absolute. Create the log dir first: mkdir -p ~/Library/Logs/grantscout
+-->
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.grantscout.pull-backup</string>
+  <key>ProgramArguments</key><array>
+    <string>/bin/bash</string>
+    <string>/Users/andre/Development/grantscout/infra/mini/laptop/pull-backup.sh</string>
+  </array>
+  <key>StartInterval</key><integer>3600</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/Users/andre/Library/Logs/grantscout/pull-backup.log</string>
+  <key>StandardErrorPath</key><string>/Users/andre/Library/Logs/grantscout/pull-backup.err</string>
+</dict></plist>

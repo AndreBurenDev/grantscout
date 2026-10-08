@@ -1,5 +1,8 @@
 # GrantScout Operations Guide
 
+> **Outdated: describes the retired Google Cloud deployment.** GrantScout now runs on the Mac Mini with SQLite and
+> Ollama. See [infra/mini/README.md](infra/mini/README.md); the old setup is archived in [infra/legacy-gcp](infra/legacy-gcp/README.md).
+
 ## System Overview
 
 GrantScout is a scheduled data pipeline that ingests organization and signal data, scores prospects, and syncs to HubSpot. It runs as serverless Cloud Run jobs triggered daily by Cloud Scheduler.
