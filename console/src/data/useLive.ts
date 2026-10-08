@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { onSnapshot, type Query, type DocumentData } from 'firebase/firestore'
+import { useQuery } from '@tanstack/react-query'
+import { apiGet, type Row } from '@/lib/api'
 
 export interface LiveState<T> {
   data: T[] | undefined
@@ -9,40 +9,32 @@ export interface LiveState<T> {
   retry: () => void
 }
 
+const POLL_MS = 5000
+
 /**
- * Subscribe to a Firestore query in real time. Returns a React-Query-shaped
- * state object so screens can swap a `useQuery` hook for a live one with no
- * other changes. `build`/`map` are expected to be stable per screen.
+ * A list that keeps itself current by polling the API every few seconds (it used to be a Firestore
+ * listener). Same shape as before, so screens did not change. Polling pauses while the tab is hidden.
  */
 export function useLiveCollection<T>(
-  build: () => Query<DocumentData>,
-  map: (id: string, data: DocumentData) => T,
+  queryKey: readonly unknown[],
+  path: string,
+  map: (id: string, data: Row['data']) => T,
   postProcess?: (items: T[]) => T[],
 ): LiveState<T> {
-  const [data, setData] = useState<T[] | undefined>(undefined)
-  const [error, setError] = useState<unknown>(null)
-  const [nonce, setNonce] = useState(0)
-
-  useEffect(() => {
-    setData(undefined)
-    setError(null)
-    const unsub = onSnapshot(
-      build(),
-      (snap) => {
-        const items = snap.docs.map((d) => map(d.id, d.data()))
-        setData(postProcess ? postProcess(items) : items)
-      },
-      (err) => setError(err),
-    )
-    return unsub
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nonce])
+  const q = useQuery({
+    queryKey,
+    queryFn: async (): Promise<T[]> => {
+      const items = (await apiGet<Row[]>(path)).map((r) => map(r.id, r.data))
+      return postProcess ? postProcess(items) : items
+    },
+    refetchInterval: POLL_MS,
+  })
 
   return {
-    data,
-    isLoading: data === undefined && !error,
-    isError: !!error,
-    error,
-    retry: () => setNonce((n) => n + 1),
+    data: q.data,
+    isLoading: q.isLoading,
+    isError: q.isError,
+    error: q.error,
+    retry: () => void q.refetch(),
   }
 }

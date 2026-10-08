@@ -1,30 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
-import { collection, getDocs } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { apiGet, type Row } from '@/lib/api'
 import { qk } from './keys'
-import { toAccountScore, toOrganization } from './converters'
+import { toAccountScore } from './converters'
 import type { AccountScore } from './types'
 
 export function useScores() {
   return useQuery({
     queryKey: qk.scores.all,
-    queryFn: async (): Promise<AccountScore[]> => {
-      const [scoreSnap, orgSnap] = await Promise.all([
-        getDocs(collection(db, 'accountScores')),
-        getDocs(collection(db, 'organizations')),
-      ])
-      const nameById = new Map(
-        orgSnap.docs.map((d) => {
-          const org = toOrganization(d.id, d.data())
-          return [org.canonicalId, org.names[0] ?? org.canonicalId]
-        }),
-      )
-      return scoreSnap.docs
-        .map((d) => {
-          const score = toAccountScore(d.id, d.data())
-          return { ...score, orgName: nameById.get(score.orgId) ?? score.orgId }
+    queryFn: async (): Promise<AccountScore[]> =>
+      // The API joins the organisation name onto each score.
+      (await apiGet<(Row & { orgName?: string })[]>('/api/scores'))
+        .map((r) => {
+          const score = toAccountScore(r.id, r.data)
+          return { ...score, orgName: r.orgName ?? score.orgId }
         })
-        .sort((a, b) => b.score - a.score)
-    },
+        .sort((a, b) => b.score - a.score),
   })
 }

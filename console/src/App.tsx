@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/auth/AuthProvider'
-import { LoginPage } from '@/auth/LoginPage'
+import { NoAccess } from '@/auth/NoAccess'
 import { AppShell } from '@/app/AppShell'
 import { NotFound } from '@/app/NotFound'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -38,10 +38,10 @@ function Splash() {
 }
 
 export function AuthGate() {
-  const { user, loading } = useAuth()
+  const { user, loading, deniedStatus } = useAuth()
 
   if (loading) return <Splash />
-  if (!user) return <LoginPage />
+  if (!user) return <NoAccess status={deniedStatus} />
 
   return (
     <Suspense fallback={<Splash />}>

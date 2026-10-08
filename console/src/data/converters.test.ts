@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest'
-import { Timestamp } from 'firebase/firestore'
 import {
   tsToDate,
   toRun,
@@ -18,9 +17,8 @@ describe('tsToDate', () => {
     expect(tsToDate(undefined)).toBeUndefined()
   })
 
-  it('converts a Firestore Timestamp', () => {
-    const ts = Timestamp.fromDate(new Date('2026-01-15T10:00:00Z'))
-    expect(tsToDate(ts)?.toISOString()).toBe('2026-01-15T10:00:00.000Z')
+  it('converts an ISO string, the form the service writes', () => {
+    expect(tsToDate('2026-01-15T10:00:00Z')?.toISOString()).toBe('2026-01-15T10:00:00.000Z')
   })
 
   it('converts a plain { seconds } object', () => {

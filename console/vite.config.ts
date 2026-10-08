@@ -4,7 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
-  server: { port: 3100, strictPort: true },
+  // Dev: the API runs on :3300 (`npm run dev` at the repo root, with DEV_AUTH_EMAIL set).
+  server: { port: 3100, strictPort: true, proxy: { '/api': 'http://127.0.0.1:3300' } },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -15,7 +16,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           query: ['@tanstack/react-query'],
         },
