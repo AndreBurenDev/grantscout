@@ -1,4 +1,5 @@
-import { collections } from '../../core/firestore.js';
+import { collections } from '../../core/store.js';
+import { recordRun } from '../../core/runs.js';
 import { fetchGrants } from './client.js';
 
 const BATCH_LIMIT = 450;
@@ -8,7 +9,7 @@ const BATCH_LIMIT = 450;
  * upsert by canonicalId) and record a syncLog. Grants are a separate entity
  * from organizations, so this runs outside the org sensor pipeline.
  */
-export async function ingestGrants(): Promise<{ grants: number }> {
+export async function ingestGrants(opts: { runId?: string } = {}): Promise<{ grants: number }> {
   console.log('[grantatlas-grants] fetching opportunities');
   const grants = await fetchGrants();
   console.log(`[grantatlas-grants] fetched ${grants.length} opportunities`);
@@ -24,8 +25,9 @@ export async function ingestGrants(): Promise<{ grants: number }> {
     }
   }
 
-  if (collections.syncLogs) {
-    await collections.syncLogs.add({
+  {
+    await recordRun(opts.runId, {
+      sourceId: 'grantatlas-grants',
       service: 'grantatlas-grants',
       timestamp: new Date().toISOString(),
       grantsIngested: grants.length,

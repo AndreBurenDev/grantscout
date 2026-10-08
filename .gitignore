@@ -22,3 +22,4 @@ console/vite.config.d.ts
 screenshots/
 .playwright-mcp/
 grantscout-login.png
+.data/

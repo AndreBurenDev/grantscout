@@ -1,4 +1,4 @@
-import { extractDoelstelling } from '../ai/gemini.js';
+import { extractDoelstelling } from '../ai/llm.js';
 
 const FETCH_TIMEOUT_MS = Number(process.env.SCRAPE_TIMEOUT_MS || 8000);
 

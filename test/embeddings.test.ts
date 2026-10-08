@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { embedMission, cosineSimilarity, computeICPCentroid, computeFitScore } from '../src/ai/gemini.js';
+import { embedMission, cosineSimilarity, computeICPCentroid, computeFitScore } from '../src/ai/llm.js';
 
 describe('Embeddings', () => {
   describe('embedMission', () => {

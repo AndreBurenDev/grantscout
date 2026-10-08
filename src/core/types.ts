@@ -31,7 +31,7 @@ export interface Organization {
   themes?: string[];
   sizeBand?: 'micro' | 'small' | 'medium' | 'large';
   geographicScope?: string[];
-  embedding?: number[];            // Gemini mission embedding
+  embedding?: number[];            // mission embedding
   mergedFrom?: string[];
   provenance: Provenance[];
   confidence: Confidence;

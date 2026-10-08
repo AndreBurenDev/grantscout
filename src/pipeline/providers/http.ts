@@ -1,5 +1,5 @@
-import { bucket } from '../../core/gcs.js';
 import { readFileSync } from 'fs';
+import { storeRawSnapshot } from '../../core/snapshots.js';
 
 export async function fetchHttp(url: string): Promise<Buffer> {
   // Handle local file:// URLs for testing
@@ -21,10 +21,10 @@ export async function fetchHttp(url: string): Promise<Buffer> {
   return Buffer.from(await response.arrayBuffer());
 }
 
+/** Store the immutable raw snapshot on local disk; the returned key is the snapshotId on every record. */
 export async function storeSnapshot(sourceId: string, data: Buffer): Promise<string> {
-  const timestamp = new Date().toISOString();
+  const timestamp = new Date().toISOString().replace(/:/g, '-');
   const key = `raw/${sourceId}/${timestamp}.bin`;
-  const file = bucket.file(key);
-  await file.save(data);
+  await storeRawSnapshot(key, data);
   return key;
 }
