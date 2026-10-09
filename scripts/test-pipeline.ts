@@ -7,7 +7,7 @@ import { extractGrantAtlasAwardees } from '../src/pipeline/extractors/grantatlas
 import { normalizeOrg, normalizeSignal } from '../src/pipeline/normalizer.js';
 import { computeAccountScore } from '../src/scoring/accountScore.js';
 import { rankProspects, syncProspectsToHubSpot } from '../src/orchestrator/hubspot.js';
-import { computeICPCentroid, computeFitScore } from '../src/ai/gemini.js';
+import { computeICPCentroid, computeFitScore } from '../src/ai/llm.js';
 import { ICP_SEED_MISSIONS } from '../src/scoring/icp.js';
 
 // Sample ANBI data

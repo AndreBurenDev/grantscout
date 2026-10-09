@@ -1,4 +1,4 @@
-import { collections } from '../core/firestore.js';
+import { collections } from '../core/store.js';
 import type { Organization } from '../core/types.js';
 
 // Standalone tokens dropped before name comparison (legal forms, geo, articles).
@@ -69,7 +69,7 @@ export function enrichAgainstIndex(
  * be computed from real embeddings instead of the 0.3 no-mission fallback.
  *
  * Borrows the mission only; full entity dedup (merging the awardee and the ANBI
- * record into one canonical org) is a follow-up. Safe without Firestore (no-op).
+ * record into one canonical org) is a follow-up. Runs against the local store.
  */
 export async function enrichMissions(
   orgs: Organization[],
@@ -79,7 +79,7 @@ export async function enrichMissions(
     return { orgs, enriched: 0 };
   }
 
-  // Index existing mission-bearing orgs from Firestore, plus any in this batch.
+  // Index existing mission-bearing orgs from the store, plus any in this batch.
   const snap = await collections.organizations.get();
   const existing = snap.docs.map((d: any) => ({
     canonicalId: d.id,

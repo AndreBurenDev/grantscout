@@ -1,49 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  orderBy,
-  query,
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { apiGet, apiSend, ApiError, type Row } from '@/lib/api'
 import { qk } from './keys'
 import { toRun } from './converters'
 import type { Run } from './types'
 import { useLiveCollection } from './useLive'
 
-/** Live list of pipeline runs (real-time via Firestore onSnapshot). */
+/** Live list of pipeline runs, newest first. */
 export function useLiveRuns() {
-  return useLiveCollection(
-    () => query(collection(db, 'syncLogs'), orderBy('timestamp', 'desc')),
-    toRun,
-  )
+  return useLiveCollection(qk.runs.all, '/api/runs', toRun)
 }
 
 export function useRun(id: string) {
   return useQuery({
     queryKey: qk.runs.detail(id),
     queryFn: async (): Promise<Run | null> => {
-      const snap = await getDoc(doc(db, 'syncLogs', id))
-      return snap.exists() ? toRun(snap.id, snap.data()) : null
+      try {
+        const row = await apiGet<Row>(`/api/runs/${encodeURIComponent(id)}`)
+        return toRun(row.id, row.data)
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) return null
+        throw e
+      }
     },
   })
 }
 
-/** Enqueue a manual run; the backend pipeline picks up `queued` syncLogs. */
+/** Queue a manual run on the service's single-worker queue. */
 export function useTriggerRun() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (sourceId: string) => {
-      await addDoc(collection(db, 'syncLogs'), {
-        sourceId,
-        timestamp: new Date().toISOString(),
-        status: 'queued',
-        orgsIngested: 0,
-        signalsIngested: 0,
-      })
-    },
+    mutationFn: (sourceId: string) => apiSend<{ id: string }>('POST', '/api/runs', { sourceId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.runs.all }),
   })
 }

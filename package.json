@@ -13,28 +13,25 @@
     "test:watch": "vitest",
     "lint": "eslint src test --ext .ts",
     "pipeline:once": "tsx src/index.ts",
-    "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts",
-    "dev:console": "cd console && npm run dev",
-    "emulators": "firebase emulators:start --only auth,firestore",
-    "emulators:seed": "tsx console/scripts/seed-emulator.ts",
-    "docker:build": "docker build -t grantscout:latest .",
-    "docker:test": "docker run --rm grantscout:latest --source anbi-nl"
+    "start": "node dist/runtime/main.js",
+    "dev": "DEV_AUTH_EMAIL=dev@localhost tsx watch src/runtime/main.ts",
+    "dev:console": "cd console && npm run dev"
   },
   "dependencies": {
-    "@genkit-ai/googleai": "^1.0.0",
-    "@google-cloud/storage": "^7.14.0",
+    "@hono/node-server": "^1.19.17",
+    "better-sqlite3": "^11.10.0",
+    "cron-parser": "^4.9.0",
     "fflate": "^0.8.3",
-    "firebase-admin": "^13.0.0",
-    "genkit": "^1.0.0",
-    "typesense": "^1.8.2",
+    "hono": "^4.13.13",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.0.0",
     "eslint": "^9.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
-  }
+  },
+  "description": ""
 }

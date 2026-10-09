@@ -1,5 +1,5 @@
 /**
- * Console domain types. These mirror the backend Firestore document shapes
+ * Console domain types. These mirror the stored document shapes
  * (see ../../../src/core/types.ts and the writers in src/pipeline) so that
  * real and seeded data flow through unchanged.
  */

@@ -11,12 +11,19 @@ Mirror of GrantAtlas (which maps grants + funders); GrantScout maps the orgs tha
 - **Beacon** — feeds organic/viral acquisition loops (later phases)
 - **Orchestrator** — ranks prospects → HubSpot / team
 
-## Quick start
+## Where it runs
+On the Mac Mini, in its own isolated OrbStack machine: one process serves the scheduler, the admin API and the
+Console. Data is a local SQLite file plus raw snapshots on disk; AI is Ollama on the host. No cloud runtime, no cloud
+credential. Runbook: [infra/mini/README.md](infra/mini/README.md). The retired Google Cloud setup is in
+[infra/legacy-gcp](infra/legacy-gcp/README.md).
+
+## Quick start (development)
 ```bash
-cp .env.example .env   # fill in
-npm install
-npm run pipeline:once -- --source anbi-nl
+npm install --include=dev        # .npmrc omits dev dependencies by default
 npm test
+npm run pipeline:once -- --source anbi-nl     # one run from the CLI; data lands in ./.data
+npm run dev                      # API on :3300, acting as dev@localhost
+npm run dev:console              # Console on :3100, proxying /api to :3300
 ```
 
 ## Ethics & compliance

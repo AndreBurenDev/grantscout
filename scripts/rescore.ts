@@ -4,7 +4,7 @@
  *
  *   GOOGLE_APPLICATION_CREDENTIALS=... GEMINI_API_KEY=... npx tsx scripts/rescore.ts
  */
-import { collections } from '../src/core/firestore.js';
+import { collections } from '../src/core/store.js';
 import { scoreAndPersist } from '../src/scoring/persist.js';
 import type { Organization, Signal } from '../src/core/types.js';
 

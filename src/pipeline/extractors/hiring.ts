@@ -12,8 +12,8 @@ export interface JobPosting {
 /**
  * Extract hiring signals from job postings.
  * Identifies organizations actively recruiting for grants/fundraising roles.
- * Uses LLM (Gemini) to extract org name and role from unstructured job text.
- * TODO: Implement Gemini extraction for now returns mock results.
+ * Will use the local LLM to extract org name and role from unstructured job text.
+ * TODO: Implement LLM extraction; for now returns mock results.
  */
 export async function extractHiringSignals(
   jobPostings: JobPosting[],
@@ -25,7 +25,7 @@ export async function extractHiringSignals(
   const seenOrgIds = new Set<string>();
 
   for (const posting of jobPostings) {
-    // TODO: Extract org name from posting.company or description via Gemini
+    // TODO: Extract org name from posting.company or description via the local LLM
     // For now, use mock extraction based on keywords
     const extracted = extractOrgFromPosting(posting);
 
@@ -95,7 +95,7 @@ export async function extractHiringSignals(
 
 /**
  * Mock extraction of org from job posting.
- * TODO: Replace with real Gemini LLM extraction.
+ * TODO: Replace with real LLM extraction.
  */
 function extractOrgFromPosting(posting: JobPosting): {
   orgName: string;

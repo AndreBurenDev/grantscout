@@ -9,7 +9,11 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      # .npmrc sets omit=dev (prod-safe for Docker); CI needs the dev tooling.
+      # .npmrc sets omit=dev; CI needs the dev tooling.
       - run: npm ci --include=dev
       - run: npm run typecheck
       - run: npm test
+      - run: npm ci --include=dev
+        working-directory: console
+      - run: npx tsc -b && npm test && npm run build
+        working-directory: console

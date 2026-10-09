@@ -1,11 +1,11 @@
 import type { Organization, Signal, AccountScore } from '../core/types.js';
 import { computeAccountScore } from './accountScore.js';
-import { computeICPCentroid, computeFitScore } from '../ai/gemini.js';
+import { computeICPCentroid, computeFitScore, embeddingModelVersion } from '../ai/llm.js';
 import { ICP_SEED_MISSIONS } from './icp.js';
-import { collections } from '../core/firestore.js';
+import { collections } from '../core/store.js';
 
 const REVIEW_CONFIDENCE_THRESHOLD = 0.6;
-const FIRESTORE_BATCH_LIMIT = 450; // hard limit is 500 ops/batch
+const FIRESTORE_BATCH_LIMIT = 450; // one transaction per chunk
 
 export interface ScoringResult {
   scored: number;
@@ -48,12 +48,12 @@ async function commitInChunks<T>(
 /**
  * Compute Account Scores for resolved orgs and persist them to `accountScores`.
  * Also enqueues low-confidence orgs into `reviewQueue` so they surface in the
- * admin console. Safe to call without Firestore configured (no-ops).
+ * admin console. Writes to the local store.
  */
 export async function scoreAndPersist(
   orgs: Organization[],
   signals: Signal[],
-  modelVersion = 'keyword-v1',
+  modelVersion?: string,
 ): Promise<ScoringResult> {
   if (!collections.accountScores || orgs.length === 0) {
     return { scored: 0, queuedForReview: 0 };
@@ -74,7 +74,7 @@ export async function scoreAndPersist(
   for (const org of orgs) {
     const related = signalsByOrg.get(org.canonicalId) ?? [];
     const fit = org.mission ? await computeFitScore(org.mission, centroid) : 0.3;
-    const score = computeAccountScore(org, related, fit, 0.8, modelVersion);
+    const score = computeAccountScore(org, related, fit, 0.8, modelVersion ?? embeddingModelVersion());
     scoreDocs.push({ id: org.canonicalId, data: score });
 
     if (needsReview(org)) {

@@ -9,10 +9,6 @@ dist/
 *-key.json
 grantscout-key.json
 
-# Firebase emulator / deploy artifacts
-.firebase/
-.emulator-data/
-
 # Build / tooling artifacts
 *.tsbuildinfo
 console/vite.config.js
@@ -22,3 +18,4 @@ console/vite.config.d.ts
 screenshots/
 .playwright-mcp/
 grantscout-login.png
+.data/

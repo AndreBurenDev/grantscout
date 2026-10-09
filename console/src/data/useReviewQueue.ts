@@ -1,48 +1,27 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  collection,
-  doc,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-} from 'firebase/firestore'
-import { auth, db } from '@/lib/firebase'
+import { apiSend } from '@/lib/api'
 import { qk } from './keys'
 import { toReviewItem } from './converters'
 import { useLiveCollection } from './useLive'
 
-/**
- * Live pending review queue. Filtered to `status == 'pending'` (single-field
- * index, no composite needed) and sorted newest-first client-side.
- */
+/** Live pending review queue, newest first. */
 export function useLiveReviewQueue() {
-  return useLiveCollection(
-    () => query(collection(db, 'reviewQueue'), where('status', '==', 'pending')),
-    toReviewItem,
-    (items) =>
-      [...items].sort(
-        (a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0),
-      ),
+  return useLiveCollection(qk.review.all, '/api/review?status=pending', toReviewItem, (items) =>
+    [...items].sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)),
   )
 }
 
 type Decision = 'approved' | 'rejected'
 
-/**
- * Approve/reject a review item. The live query removes it from the list as soon
- * as the write lands, so no optimistic cache surgery is needed here.
- */
+/** Approve/reject a review item. The service records who decided and when. */
 export function useReviewDecision() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, decision }: { id: string; decision: Decision }) => {
-      await updateDoc(doc(db, 'reviewQueue', id), {
-        status: decision,
-        reviewedBy: auth.currentUser?.email ?? 'unknown',
-        reviewedAt: serverTimestamp(),
-      })
+    mutationFn: ({ id, decision }: { id: string; decision: Decision }) =>
+      apiSend('POST', `/api/review/${encodeURIComponent(id)}/decision`, { decision }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: qk.review.all })
+      void qc.invalidateQueries({ queryKey: qk.overview.all })
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.overview.all }),
   })
 }

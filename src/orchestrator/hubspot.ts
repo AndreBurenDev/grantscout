@@ -1,5 +1,5 @@
 import { config } from '../core/config.js';
-import { collections } from '../core/firestore.js';
+import { collections } from '../core/store.js';
 import type { Organization, AccountScore } from '../core/types.js';
 
 /**
@@ -64,7 +64,7 @@ export async function syncProspectsToHubSpot(
     console.log('[hubspot] DRY-RUN MODE: No actual sync performed');
     console.log('[hubspot] To enable real sync, set HUBSPOT_SYNC_ENABLED=true');
 
-    // Log the dry-run to Firestore for auditing (if available)
+    // Log the dry-run to the store for auditing
     if (collections.syncLogs) {
       try {
         await collections.syncLogs.add({
@@ -75,7 +75,7 @@ export async function syncProspectsToHubSpot(
           payloadSample: hupsotPayloads.slice(0, 3),
         });
       } catch (e) {
-        console.warn('[hubspot] Could not log to Firestore (not configured?):', e);
+        console.warn('[hubspot] Could not log the dry-run:', e);
       }
     }
 

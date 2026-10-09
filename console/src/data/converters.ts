@@ -1,4 +1,3 @@
-import { Timestamp, type DocumentData } from 'firebase/firestore'
 import type {
   Run,
   Organization,
@@ -11,14 +10,17 @@ import type {
 } from './types'
 import { DEFAULT_SETTINGS } from './types'
 
+// A stored document as the API returns it.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DocumentData = Record<string, any>
+
 /**
- * Coerce any Firestore/JSON date representation into a JS Date.
- * Handles Firestore Timestamp, `{ seconds, nanoseconds }` plain objects,
- * ISO strings (the backend writes these), epoch numbers, and Date instances.
+ * Coerce any JSON date representation into a JS Date.
+ * Handles ISO strings (the backend writes these), epoch numbers, Date instances and
+ * `{ seconds, nanoseconds }` objects (records imported from the old Firestore export).
  */
 export function tsToDate(value: unknown): Date | undefined {
   if (value == null) return undefined
-  if (value instanceof Timestamp) return value.toDate()
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? undefined : value
   if (typeof value === 'number') return new Date(value)
   if (typeof value === 'string') {

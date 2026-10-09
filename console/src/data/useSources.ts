@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { collection, doc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { apiGet, apiSend, type Row } from '@/lib/api'
 import { qk } from './keys'
 import { toSource } from './converters'
 import type { Source } from './types'
@@ -8,21 +7,18 @@ import type { Source } from './types'
 export function useSources() {
   return useQuery({
     queryKey: qk.sources.all,
-    queryFn: async (): Promise<Source[]> => {
-      const snap = await getDocs(collection(db, 'sources'))
-      return snap.docs
-        .map((d) => toSource(d.id, d.data()))
-        .sort((a, b) => a.name.localeCompare(b.name))
-    },
+    queryFn: async (): Promise<Source[]> =>
+      (await apiGet<Row[]>('/api/sources'))
+        .map((r) => toSource(r.id, r.data))
+        .sort((a, b) => a.name.localeCompare(b.name)),
   })
 }
 
 export function useToggleSource() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
-      await updateDoc(doc(db, 'sources', id), { enabled })
-    },
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      apiSend('PATCH', `/api/sources/${encodeURIComponent(id)}`, { enabled }),
     onMutate: async ({ id, enabled }) => {
       await qc.cancelQueries({ queryKey: qk.sources.all })
       const prev = qc.getQueryData<Source[]>(qk.sources.all)
@@ -38,13 +34,17 @@ export function useToggleSource() {
   })
 }
 
-/** Create or update a source document (used by the edit / add modals). */
+/** Create or update a source (used by the edit / add modals). */
 export function useSaveSource() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (source: Source) => {
-      const { id, ...rest } = source
-      await setDoc(doc(db, 'sources', id), rest, { merge: true })
+    mutationFn: (source: Source) => {
+      // Last-run facts belong to the service, not to the form.
+      const body: Partial<Source> = { ...source }
+      delete body.id
+      delete body.lastRunAt
+      delete body.lastRunStatus
+      return apiSend('PUT', `/api/sources/${encodeURIComponent(source.id)}`, body)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.sources.all }),
   })

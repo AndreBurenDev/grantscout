@@ -6,13 +6,16 @@ import { resolveOrganizations, deduplicateSignals, writeOrganizationsAndSignals 
 import { enrichMissions } from './enrich.js';
 import { enrichFromAnbiRegistry } from './enrichAnbi.js';
 import { scoreAndPersist } from '../scoring/persist.js';
-import { collections } from '../core/firestore.js';
+import { recordRun } from '../core/runs.js';
 
 /**
  * Run sensor for a source: fetch → capture → extract → normalize → resolve → store.
  * Each step is independently testable and composable.
  */
-export async function runSensor(source: Source): Promise<{ orgs: number; signals: number }> {
+export async function runSensor(
+  source: Source,
+  opts: { runId?: string } = {},
+): Promise<{ orgs: number; signals: number }> {
   console.log(`[sensor] Starting ${source.id}`);
 
   try {
@@ -36,8 +39,8 @@ export async function runSensor(source: Source): Promise<{ orgs: number; signals
       throw new Error(`${source.id}: unknown provider ${source.provider}`);
     }
 
-    // 2. Store immutable raw snapshot in GCS
-    console.log(`[sensor] Storing ${rawData.length} bytes to GCS`);
+    // 2. Store immutable raw snapshot on local disk
+    console.log(`[sensor] Storing ${rawData.length} bytes as a raw snapshot`);
     const snapshotId = await storeSnapshot(source.id, rawData);
 
     // 3. Extract based on method
@@ -115,7 +118,7 @@ export async function runSensor(source: Source): Promise<{ orgs: number; signals
       );
     }
 
-    // 6. Write to Firestore
+    // 6. Write to the store
     const writeResult = await writeOrganizationsAndSignals(
       orgsToWrite,
       deduplicatedSignals
@@ -133,7 +136,7 @@ export async function runSensor(source: Source): Promise<{ orgs: number; signals
     }
 
     // 7. Store sync log
-    await collections.syncLogs.add({
+    await recordRun(opts.runId, {
       sourceId: source.id,
       timestamp: new Date().toISOString(),
       orgsIngested: writeResult.orgsWritten,
@@ -148,7 +151,7 @@ export async function runSensor(source: Source): Promise<{ orgs: number; signals
   } catch (error) {
     console.error(`[sensor] Error in ${source.id}:`, error);
 
-    await collections.syncLogs.add({
+    await recordRun(opts.runId, {
       sourceId: source.id,
       timestamp: new Date().toISOString(),
       orgsIngested: 0,

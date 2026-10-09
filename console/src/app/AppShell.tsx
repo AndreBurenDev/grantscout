@@ -5,7 +5,6 @@ import { cn } from '@/lib/cn'
 import {
   BarChart3,
   Settings,
-  LogOut,
   Database,
   Play,
   CheckSquare,
@@ -28,7 +27,7 @@ const navItems = [
 ]
 
 export function AppShell() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
@@ -85,17 +84,10 @@ export function AppShell() {
       </nav>
 
       <div className="border-t border-hair p-4">
-        <div className="mb-3">
-          <p className="text-xs font-medium text-muted">Signed in as</p>
+        <div>
+          <p className="text-xs font-medium text-muted">Signed in via tailnet as</p>
           <p className="truncate text-sm font-medium text-fg">{user?.email}</p>
         </div>
-        <button
-          onClick={() => logout()}
-          className="flex w-full items-center justify-center gap-2 rounded bg-card px-3 py-2 text-sm text-muted transition-colors hover:bg-hair"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </button>
       </div>
     </div>
   )

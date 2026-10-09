@@ -1,0 +1,23 @@
+# infra/mini/grantscout.service → /etc/systemd/system/grantscout.service (inside the machine)
+[Unit]
+Description=GrantScout (scheduler + admin API + console)
+After=network-online.target grantscout-paid-deny.service
+Wants=network-online.target grantscout-paid-deny.service
+
+[Service]
+User=grantscout
+WorkingDirectory=/opt/grantscout
+EnvironmentFile=/etc/grantscout/env
+ExecStart=/usr/bin/node dist/runtime/main.js
+Restart=on-failure
+RestartSec=10
+# A run in progress gets time to finish before systemd kills the process (the service waits up to 25 s itself).
+TimeoutStopSec=40
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/grantscout /tmp
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

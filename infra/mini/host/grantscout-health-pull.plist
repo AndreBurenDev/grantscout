@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  infra/mini/host/grantscout-health-pull.plist → ~/Library/LaunchAgents/com.grantscout.health-pull.plist
+  The script path assumes the main checkout at ~/Development/grantscout; edit if different.
+-->
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.grantscout.health-pull</string>
+  <key>ProgramArguments</key><array>
+    <string>/bin/bash</string>
+    <string>/Users/andre/Development/grantscout/infra/mini/host/grantscout-health-pull.sh</string>
+  </array>
+  <key>StartInterval</key><integer>900</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardErrorPath</key><string>/tmp/grantscout-health-pull.err</string>
+</dict></plist>

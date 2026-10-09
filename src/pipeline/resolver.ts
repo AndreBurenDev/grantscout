@@ -1,4 +1,4 @@
-import { collections } from '../core/firestore.js';
+import { collections } from '../core/store.js';
 import type { Organization, Signal } from '../core/types.js';
 import { organizationId } from '../core/ids.js';
 
@@ -94,7 +94,7 @@ export async function deduplicateSignals(signals: Signal[]): Promise<Signal[]> {
 }
 
 /**
- * Write organizations and signals to Firestore.
+ * Write organizations and signals to the store.
  * Idempotent: same ID overwrites with merged provenance.
  */
 export async function writeOrganizationsAndSignals(
