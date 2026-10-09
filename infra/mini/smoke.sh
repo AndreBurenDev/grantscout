@@ -28,11 +28,21 @@ IN '
 IN 'curl -sf -m 8 -o /dev/null https://www.belastingdienst.nl/' && ok "open web reachable" || ko "open web unreachable"
 IN 'curl -s -m 3 -o /dev/null http://host.orb.internal:4820/ ; test $? -ne 0' && ok "host loopback (Companion) NOT reachable" || ko "Companion reachable from machine"
 
-# Auth: without a tailnet identity the API must refuse; the Console shell itself is public static files.
+# Auth: the TCP port never believes a tailnet identity (OrbStack forwards it to the Mac's localhost); only the
+# proxy socket does, and there the allowlist still applies. The Console shell itself is public static files.
+SOCK=/run/grantscout/console.sock
+ROOT() { orb -m "$M" -u root bash -c "$1" </dev/null; }
 code=$(IN "curl -s -m 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:${PORT}/api/me")
 [ "$code" = 401 ] && ok "API refuses a request without tailnet identity (401)" || ko "API answered $code without identity"
 code=$(IN "curl -s -m 5 -o /dev/null -w '%{http_code}' -H 'Tailscale-User-Login: nobody@example.com' http://127.0.0.1:${PORT}/api/organizations")
-[ "$code" = 403 ] && ok "API refuses a login that is not allowlisted (403)" || ko "API answered $code for a non-allowlisted login"
+[ "$code" = 401 ] && ok "TCP port ignores a tailnet identity header (401)" || ko "TCP port answered $code to an identity header (expected 401)"
+code=$(curl -s -m 5 -o /dev/null -w '%{http_code}' -H 'Tailscale-User-Login: nobody@example.com' "http://127.0.0.1:${PORT}/api/organizations")
+[ "$code" = 401 ] && ok "host loopback cannot pose as the serve proxy (401)" || ko "host loopback answered $code to an identity header (expected 401)"
+code=$(ROOT "curl -s -m 5 -o /dev/null -w '%{http_code}' --unix-socket $SOCK -H 'Tailscale-User-Login: nobody@example.com' http://console/api/organizations")
+[ "$code" = 403 ] && ok "proxy socket refuses a login that is not allowlisted (403)" || ko "proxy socket answered $code for a non-allowlisted login"
+perm=$(ROOT "stat -c '%a %U' $SOCK")
+[ "$perm" = "600 grantscout" ] && ok "proxy socket is 600 grantscout" || ko "proxy socket is '$perm', expected '600 grantscout'"
+ROOT "command -v tailscale >/dev/null && tailscale serve status 2>/dev/null | grep -q '$SOCK'" && ok "tailscale serve targets the proxy socket" || ko "tailscale serve is not pointed at $SOCK"
 code=$(IN "curl -s -m 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:${PORT}/api/ops/health")
 [ "$code" = 401 ] && ok "health refuses a request without the ops key (401)" || ko "health answered $code without a key"
 

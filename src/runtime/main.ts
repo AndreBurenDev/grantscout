@@ -1,4 +1,5 @@
-// Single-process entrypoint on the Mac Mini: scheduler + admin API + built Console on one port.
+// Single-process entrypoint on the Mac Mini: scheduler + admin API + built Console. Two listeners: the proxy
+// socket (people, through `tailscale serve`) and the TCP port (the host's key-authenticated health pull).
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { readFileSync } from 'node:fs';
@@ -6,6 +7,7 @@ import { join, relative } from 'node:path';
 import { config } from '../core/config.js';
 import { closeStore } from '../core/store.js';
 import { createApi } from '../server/api.js';
+import { listenProxySocket } from '../server/proxySocket.js';
 import { Scheduler } from './scheduler.js';
 import { closeInterruptedRuns, executeRun, lastStarted, markStarted, scheduleEntries } from './runRegistry.js';
 import { seedSources } from './sources.js';
@@ -14,9 +16,12 @@ const SHUTDOWN_WAIT_MS = 25_000;
 const log = (o: Record<string, unknown>): void => console.log(JSON.stringify(o));
 
 if (process.env.NODE_ENV === 'production') {
-  if (config.console.trustedProxyIps.length === 0) throw new Error('TRUSTED_PROXY_IPS is required in production');
+  if (!config.console.proxySocket) throw new Error('CONSOLE_PROXY_SOCKET is required in production');
   if (config.console.allowlist.length === 0) throw new Error('CONSOLE_ALLOWLIST is required in production');
   if (!config.console.opsKey) throw new Error('OPS_KEY is required in production');
+}
+if (process.env.TRUSTED_PROXY_IPS) {
+  console.warn(JSON.stringify({ event: 'trusted_proxy_ips_ignored', note: 'TRUSTED_PROXY_IPS is no longer read: identity is trusted only on CONSOLE_PROXY_SOCKET.' }));
 }
 if (config.console.devAuthEmail) {
   console.warn(JSON.stringify({ event: 'dev_auth_enabled', note: 'DEV_AUTH_EMAIL is set: every request is that user. Development only.' }));
@@ -37,7 +42,6 @@ const app = createApi({
   scheduler,
   opsKey: config.console.opsKey,
   auth: {
-    trustedProxyIps: config.console.trustedProxyIps,
     allowlist: config.console.allowlist,
     devAuthEmail: config.console.devAuthEmail,
   },
@@ -51,19 +55,27 @@ const indexHtml = (() => {
 // SPA fallback for client routes only — unknown /api paths stay a JSON 404.
 app.get('*', (c) => (c.req.path.startsWith('/api/') ? c.json({ error: 'not found' }, 404) : c.html(indexHtml)));
 
-// The scheduler starts only once the port is bound, so a listen failure never starts runs.
-const server = serve({ fetch: app.fetch, port: config.console.port, hostname: '0.0.0.0' }, () => {
+const onServerError = (e: unknown): void => {
+  console.error(JSON.stringify({ event: 'server_error', error: e instanceof Error ? e.message : String(e) }));
+  process.exit(1);
+};
+const started = (): void => {
   log({
-    event: 'grantscout_started', port: config.console.port, dataDir: config.dataDir,
-    llmModel: config.llmModel || null, embedModel: config.embedModel || null,
+    event: 'grantscout_started', port: config.console.port, proxySocket: config.console.proxySocket || null,
+    dataDir: config.dataDir, llmModel: config.llmModel || null, embedModel: config.embedModel || null,
     schedulerPaused: config.schedulerPaused, sourcesSeeded, runsClosed,
   });
   scheduler.start();
+};
+
+// The scheduler starts only once every listener is bound, so a listen failure never starts runs.
+let proxyServer: ReturnType<typeof listenProxySocket> | undefined;
+const server = serve({ fetch: app.fetch, port: config.console.port, hostname: '0.0.0.0' }, () => {
+  if (!config.console.proxySocket) return started();
+  proxyServer = listenProxySocket(app, config.console.proxySocket, started);
+  proxyServer.on('error', onServerError);
 });
-server.on('error', (e) => {
-  console.error(JSON.stringify({ event: 'server_error', error: e instanceof Error ? e.message : String(e) }));
-  process.exit(1);
-});
+server.on('error', onServerError);
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
@@ -71,6 +83,7 @@ async function shutdown(signal: string): Promise<void> {
   shuttingDown = true;
   log({ event: 'shutdown_start', signal });
   server.close();
+  proxyServer?.close();
   scheduler.stop();
   const deadline = Date.now() + SHUTDOWN_WAIT_MS;
   while (scheduler.status().running && Date.now() < deadline) await new Promise((r) => setTimeout(r, 250));
