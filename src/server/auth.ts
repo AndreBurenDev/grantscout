@@ -1,12 +1,12 @@
 // Console and ops authentication on the Mac Mini. Mirrors GrantAtlas (spec §4.4 there):
-//  - humans: `tailscale serve` adds Tailscale-User-Login; the header is trusted ONLY when the TCP peer is the
-//    serve proxy, and the login must be on the allowlist;
+//  - humans: `tailscale serve` adds Tailscale-User-Login; the header is trusted ONLY on a request that arrived
+//    on the proxy socket (see proxySocket.ts), and the login must be on the allowlist;
 //  - the host's health pull: a shared key in X-API-Key;
 //  - every mutating request must prove it comes from the Console itself (ambient auth needs a CSRF guard).
 import { timingSafeEqual } from 'node:crypto';
 import type { Context, MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
-import { getConnInfo } from '@hono/node-server/conninfo';
+import { arrivedViaProxySocket } from './proxySocket.js';
 
 export type ApiEnv = { Variables: { email: string } };
 
@@ -31,28 +31,22 @@ export function requireServiceKey(expected: string): MiddlewareHandler {
 }
 
 export interface UserAuthDeps {
-  trustedProxyIps: string[];
   allowlist: string[];
   /** Development only (never set in production): act as this user without a proxy. */
   devAuthEmail?: string;
-  remoteAddress?: (c: Context) => string | undefined;
+  /** Did this request come from the serve proxy? Defaults to "it arrived on the proxy socket". */
+  viaProxy?: (c: Context) => boolean;
 }
 
-const defaultRemote = (c: Context): string | undefined => {
-  try { return getConnInfo(c).remote.address; } catch { return undefined; }
-};
-const normalizeIp = (ip: string | undefined): string => (ip ?? '').replace(/^::ffff:/, '');
-
 export function requireTailnetUser(deps: UserAuthDeps): MiddlewareHandler<ApiEnv> {
-  const trusted = deps.trustedProxyIps.map(normalizeIp);
+  const viaProxy = deps.viaProxy ?? arrivedViaProxySocket;
   const allow = new Set(deps.allowlist.map((s) => s.toLowerCase()));
   return createMiddleware<ApiEnv>(async (c, next) => {
     if (deps.devAuthEmail) {
       c.set('email', deps.devAuthEmail);
       return next();
     }
-    const remote = normalizeIp((deps.remoteAddress ?? defaultRemote)(c));
-    if (!remote || !trusted.includes(remote)) return c.json({ error: 'not via tailnet proxy' }, 401);
+    if (!viaProxy(c)) return c.json({ error: 'not via tailnet proxy' }, 401);
     const login = (c.req.header('Tailscale-User-Login') ?? '').trim().toLowerCase();
     if (!login) return c.json({ error: 'missing tailnet identity' }, 401);
     if (!allow.has(login)) return c.json({ error: 'not allowed' }, 403);

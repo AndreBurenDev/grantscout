@@ -5,11 +5,10 @@ import { Scheduler, type QueueItem } from '../src/runtime/scheduler.js';
 import { seedSources, effectiveSource } from '../src/runtime/sources.js';
 import { closeInterruptedRuns, executeRun, scheduleEntries } from '../src/runtime/runRegistry.js';
 
-const PROXY = '127.0.0.1';
 const USER = { 'Tailscale-User-Login': 'Andre@Example.com' };
 const WRITE = { ...USER, 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' };
 
-function setup(opts: { paused?: boolean; remote?: string; allow?: string[]; devAuthEmail?: string } = {}) {
+function setup(opts: { paused?: boolean; viaProxy?: boolean; allow?: string[]; devAuthEmail?: string } = {}) {
   const ran: QueueItem[] = [];
   const scheduler = new Scheduler({
     entries: () => [], lastStarted: () => ({}), markStarted: () => undefined,
@@ -20,10 +19,9 @@ function setup(opts: { paused?: boolean; remote?: string; allow?: string[]; devA
     scheduler,
     opsKey: 'ops-secret',
     auth: {
-      trustedProxyIps: [PROXY],
       allowlist: opts.allow ?? ['andre@example.com'],
       devAuthEmail: opts.devAuthEmail,
-      remoteAddress: () => opts.remote ?? PROXY,
+      viaProxy: () => opts.viaProxy ?? true,
     },
   });
   return { app, ran, scheduler };
@@ -33,7 +31,7 @@ beforeEach(() => { closeStore(); seedSources(); });
 
 describe('authentication', () => {
   it('rejects a request that did not come through the trusted proxy, even with the identity header', async () => {
-    const { app } = setup({ remote: '10.0.0.9' });
+    const { app } = setup({ viaProxy: false });
     expect((await app.request('/api/me', { headers: USER })).status).toBe(401);
   });
 
@@ -50,18 +48,13 @@ describe('authentication', () => {
     expect(await res.json()).toEqual({ email: 'andre@example.com' });
   });
 
-  it('accepts an IPv4-mapped IPv6 proxy address', async () => {
-    const { app } = setup({ remote: '::ffff:127.0.0.1' });
-    expect((await app.request('/api/me', { headers: USER })).status).toBe(200);
-  });
-
   it('an empty allowlist lets nobody in', async () => {
     const { app } = setup({ allow: [] });
     expect((await app.request('/api/me', { headers: USER })).status).toBe(403);
   });
 
   it('health needs the ops key and ignores tailnet identity', async () => {
-    const { app } = setup({ remote: '10.0.0.9' });
+    const { app } = setup({ viaProxy: false });
     expect((await app.request('/api/ops/health')).status).toBe(401);
     expect((await app.request('/api/ops/health', { headers: { 'X-API-Key': 'wrong' } })).status).toBe(401);
     expect((await app.request('/api/ops/health', { headers: USER })).status).toBe(401);
@@ -74,7 +67,7 @@ describe('authentication', () => {
   });
 
   it('the ops key does not open the user API', async () => {
-    const { app } = setup({ remote: '10.0.0.9' });
+    const { app } = setup({ viaProxy: false });
     expect((await app.request('/api/organizations', { headers: { 'X-API-Key': 'ops-secret' } })).status).toBe(401);
   });
 });

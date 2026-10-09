@@ -43,13 +43,18 @@ orb -m grantscout -u root stat -c '%a %U' /etc/grantscout/env                   
 
 ### 3. Console on the tailnet (Tailscale inside the machine)
 The host's `tailscale serve` cannot reach OrbStack's isolated network, so, as for GrantAtlas, Tailscale runs inside
-the machine and `TRUSTED_PROXY_IPS=127.0.0.1`:
+the machine. It forwards to the service's unix socket (`CONSOLE_PROXY_SOCKET`), not to port 3300:
 ```bash
 orb -m grantscout -u root bash -c 'curl -fsSL https://tailscale.com/install.sh | sh && tailscale up --hostname=grantscout'
-orb -m grantscout -u root tailscale serve --bg --https=443 http://127.0.0.1:3300
+orb -m grantscout -u root tailscale serve --bg --https=443 unix:/run/grantscout/console.sock
 ```
 `tailscale up` prints a login URL: open it and approve the node. Never enable Funnel. The Console is then at
 `https://grantscout.<tailnet>.ts.net`. Only logins in `CONSOLE_ALLOWLIST` get in; everyone else sees "No access".
+
+Why a socket: OrbStack forwards port 3300 to the Mac's localhost, and those requests reach the service as
+`127.0.0.1`, the same address the serve proxy has. A peer address therefore cannot tell the proxy from any process
+on the Mac sending its own `Tailscale-User-Login`. The socket file is `0600`: only the service user and root
+(tailscaled) can connect. Never point `tailscale serve` at port 3300; the Console would answer 401 to everyone.
 
 ### 4. Start the service, paused (HOST)
 ```bash

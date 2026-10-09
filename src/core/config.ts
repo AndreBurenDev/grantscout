@@ -38,8 +38,8 @@ export const config = {
   console: {
     port: num('CONSOLE_PORT', 3300),
     staticDir: env.CONSOLE_STATIC_DIR || 'console/dist',
-    // Source IP(s) from which the Tailscale-User-Login header is trusted (the serve proxy).
-    trustedProxyIps: list('TRUSTED_PROXY_IPS'),
+    // Unix socket `tailscale serve` forwards to. Tailscale-User-Login is trusted only on requests that arrive here.
+    proxySocket: env.CONSOLE_PROXY_SOCKET || '',
     allowlist: list('CONSOLE_ALLOWLIST').map((s) => s.toLowerCase()),
     // Service key for GET /api/ops/health. Fail-closed when empty.
     opsKey: env.OPS_KEY || '',
